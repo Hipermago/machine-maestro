@@ -60,9 +60,9 @@ export function KanbanBoard({ onAddMachine }: KanbanBoardProps) {
   return (
     <div className="flex flex-1 flex-col overflow-hidden">
       <div className="flex-1 overflow-auto">
-        <div className="min-w-[1100px]">
+        <div className="min-w-[1300px]">
           {/* Column headers */}
-          <div className="sticky top-0 z-20 grid grid-cols-[240px_1fr_1fr_1fr_1fr] border-b border-border bg-background">
+          <div className="sticky top-0 z-20 grid grid-cols-[240px_1fr_1fr_1fr_1fr_200px] border-b border-border bg-background">
             <div className="sticky left-0 z-30 border-r border-border bg-background px-3 py-2.5">
               <span className="font-heading text-xs font-semibold uppercase tracking-wider text-muted-foreground">
                 Machine
