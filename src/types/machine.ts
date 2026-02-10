@@ -43,6 +43,7 @@ export interface TaskTemplate {
 export interface AppState {
   machines: Machine[];
   tasks: Task[];
+  appName: string;
 }
 
 export const STATUS_COLUMNS: { key: TaskStatus; label: string }[] = [
