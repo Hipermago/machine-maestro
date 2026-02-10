@@ -1,5 +1,7 @@
-import { Plus, Cog, CircleDot, AlertTriangle, CheckCircle2, Clock } from 'lucide-react';
+import { useState } from 'react';
+import { Plus, Cog, CircleDot, AlertTriangle, CheckCircle2, Clock, Pencil, Check, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 import { useMachineContext } from '@/context/MachineContext';
 
 interface HeaderProps {
@@ -7,7 +9,16 @@ interface HeaderProps {
 }
 
 export function Header({ onAddMachine }: HeaderProps) {
-  const { tasks, machines } = useMachineContext();
+  const { tasks, machines, appName, setAppName } = useMachineContext();
+  const [editing, setEditing] = useState(false);
+  const [editValue, setEditValue] = useState(appName);
+
+  const handleSave = () => {
+    const trimmed = editValue.trim();
+    if (trimmed) setAppName(trimmed);
+    else setEditValue(appName);
+    setEditing(false);
+  };
 
   const counts = {
     pending: tasks.filter(t => t.status === 'pending').length,
@@ -23,9 +34,26 @@ export function Header({ onAddMachine }: HeaderProps) {
           <Cog className="h-5 w-5 text-primary-foreground" />
         </div>
         <div>
-          <h1 className="font-heading text-lg font-bold tracking-tight text-foreground">
-            CommTrack
-          </h1>
+          {editing ? (
+            <div className="flex items-center gap-1.5">
+              <Input
+                value={editValue}
+                onChange={e => setEditValue(e.target.value)}
+                onKeyDown={e => { if (e.key === 'Enter') handleSave(); if (e.key === 'Escape') { setEditValue(appName); setEditing(false); } }}
+                className="h-7 w-40 text-sm font-bold"
+                autoFocus
+              />
+              <button onClick={handleSave} className="rounded p-0.5 hover:bg-accent"><Check className="h-3.5 w-3.5 text-status-completed" /></button>
+              <button onClick={() => { setEditValue(appName); setEditing(false); }} className="rounded p-0.5 hover:bg-accent"><X className="h-3.5 w-3.5 text-muted-foreground" /></button>
+            </div>
+          ) : (
+            <div className="group flex items-center gap-1.5">
+              <h1 className="font-heading text-lg font-bold tracking-tight text-foreground">{appName}</h1>
+              <button onClick={() => { setEditValue(appName); setEditing(true); }} className="rounded p-0.5 opacity-0 transition-opacity hover:bg-accent group-hover:opacity-100">
+                <Pencil className="h-3 w-3 text-muted-foreground" />
+              </button>
+            </div>
+          )}
           <p className="text-xs text-muted-foreground">
             {machines.length} machine{machines.length !== 1 ? 's' : ''} · {tasks.length} tasks
           </p>

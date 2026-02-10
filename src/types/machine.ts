@@ -28,6 +28,7 @@ export interface Task {
 export interface Machine {
   id: string;
   name: string;
+  notes: string;
   createdAt: string;
 }
 
@@ -42,6 +43,7 @@ export interface TaskTemplate {
 export interface AppState {
   machines: Machine[];
   tasks: Task[];
+  appName: string;
 }
 
 export const STATUS_COLUMNS: { key: TaskStatus; label: string }[] = [

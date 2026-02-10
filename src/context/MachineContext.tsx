@@ -8,9 +8,9 @@ const generateId = () => Math.random().toString(36).substring(2, 11) + Date.now(
 
 function createInitialState(): AppState {
   const machines: Machine[] = [
-    { id: generateId(), name: 'CNC Mill #01', createdAt: new Date().toISOString() },
-    { id: generateId(), name: 'CNC Mill #02', createdAt: new Date().toISOString() },
-    { id: generateId(), name: 'CNC Mill #03', createdAt: new Date().toISOString() },
+    { id: generateId(), name: 'CNC Mill #01', notes: '', createdAt: new Date().toISOString() },
+    { id: generateId(), name: 'CNC Mill #02', notes: '', createdAt: new Date().toISOString() },
+    { id: generateId(), name: 'CNC Mill #03', notes: '', createdAt: new Date().toISOString() },
   ];
 
   const tasks: Task[] = [];
@@ -26,56 +26,36 @@ function createInitialState(): AppState {
 
       if (mi === 0) {
         if (ti < 4) {
-          status = 'completed';
-          assignee = engineers[0];
-          completedAt = new Date().toISOString();
-          completedBy = engineers[0];
+          status = 'completed'; assignee = engineers[0]; completedAt = new Date().toISOString(); completedBy = engineers[0];
           history.push({ from: 'pending', to: 'completed', timestamp: new Date().toISOString(), by: engineers[0] });
         } else if (ti < 6) {
-          status = 'in-progress';
-          assignee = engineers[0];
+          status = 'in-progress'; assignee = engineers[0];
           history.push({ from: 'pending', to: 'in-progress', timestamp: new Date().toISOString(), by: engineers[0] });
         } else if (ti === 6) {
-          status = 'blocked';
-          assignee = engineers[0];
+          status = 'blocked'; assignee = engineers[0];
           history.push({ from: 'pending', to: 'in-progress', timestamp: new Date().toISOString(), by: engineers[0] });
           history.push({ from: 'in-progress', to: 'blocked', timestamp: new Date().toISOString(), by: engineers[0] });
         }
       } else if (mi === 1) {
         if (ti < 2) {
-          status = 'completed';
-          assignee = engineers[1];
-          completedAt = new Date().toISOString();
-          completedBy = engineers[1];
+          status = 'completed'; assignee = engineers[1]; completedAt = new Date().toISOString(); completedBy = engineers[1];
           history.push({ from: 'pending', to: 'completed', timestamp: new Date().toISOString(), by: engineers[1] });
         } else if (ti < 4) {
-          status = 'in-progress';
-          assignee = engineers[1];
+          status = 'in-progress'; assignee = engineers[1];
           history.push({ from: 'pending', to: 'in-progress', timestamp: new Date().toISOString(), by: engineers[1] });
         }
       }
 
       tasks.push({
-        id: generateId(),
-        machineId: machine.id,
-        templateId: tpl.id,
-        title: tpl.title,
-        description: tpl.description,
-        status,
-        assignee,
-        notes: '',
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
-        completedAt,
-        completedBy,
-        statusHistory: history,
-        category: tpl.category,
-        order: tpl.order,
+        id: generateId(), machineId: machine.id, templateId: tpl.id,
+        title: tpl.title, description: tpl.description, status, assignee,
+        notes: '', createdAt: new Date().toISOString(), updatedAt: new Date().toISOString(),
+        completedAt, completedBy, statusHistory: history, category: tpl.category, order: tpl.order,
       });
     });
   });
 
-  return { machines, tasks };
+  return { machines, tasks, appName: 'CommTrack' };
 }
 
 function loadState(): AppState {
@@ -83,7 +63,9 @@ function loadState(): AppState {
     const saved = localStorage.getItem(STORAGE_KEY);
     if (saved) {
       const parsed = JSON.parse(saved);
-      if (parsed.machines?.length >= 0 && parsed.tasks?.length >= 0) return parsed;
+      if (parsed.machines?.length >= 0 && parsed.tasks?.length >= 0) {
+        return { ...parsed, appName: parsed.appName || 'CommTrack' };
+      }
     }
   } catch { /* fallthrough */ }
   return createInitialState();
@@ -92,66 +74,63 @@ function loadState(): AppState {
 type Action =
   | { type: 'ADD_MACHINE'; payload: { name: string } }
   | { type: 'DELETE_MACHINE'; payload: { machineId: string } }
+  | { type: 'RENAME_MACHINE'; payload: { machineId: string; name: string } }
+  | { type: 'UPDATE_MACHINE_NOTES'; payload: { machineId: string; notes: string } }
   | { type: 'UPDATE_TASK_STATUS'; payload: { taskId: string; status: TaskStatus; updatedBy?: string } }
-  | { type: 'UPDATE_TASK'; payload: { taskId: string; updates: Partial<Pick<Task, 'notes' | 'assignee'>> } };
+  | { type: 'UPDATE_TASK'; payload: { taskId: string; updates: Partial<Pick<Task, 'notes' | 'assignee'>> } }
+  | { type: 'SET_APP_NAME'; payload: { name: string } };
 
 function reducer(state: AppState, action: Action): AppState {
   switch (action.type) {
+    case 'SET_APP_NAME':
+      return { ...state, appName: action.payload.name };
+
     case 'ADD_MACHINE': {
       const machine: Machine = {
-        id: generateId(),
-        name: action.payload.name,
-        createdAt: new Date().toISOString(),
+        id: generateId(), name: action.payload.name, notes: '', createdAt: new Date().toISOString(),
       };
-
       const newTasks: Task[] = TASK_TEMPLATES.map(tpl => ({
-        id: generateId(),
-        machineId: machine.id,
-        templateId: tpl.id,
-        title: tpl.title,
-        description: tpl.description,
-        status: 'pending' as TaskStatus,
-        notes: '',
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
-        statusHistory: [],
-        category: tpl.category,
-        order: tpl.order,
+        id: generateId(), machineId: machine.id, templateId: tpl.id,
+        title: tpl.title, description: tpl.description, status: 'pending' as TaskStatus,
+        notes: '', createdAt: new Date().toISOString(), updatedAt: new Date().toISOString(),
+        statusHistory: [], category: tpl.category, order: tpl.order,
       }));
-
-      return {
-        machines: [...state.machines, machine],
-        tasks: [...state.tasks, ...newTasks],
-      };
+      return { ...state, machines: [...state.machines, machine], tasks: [...state.tasks, ...newTasks] };
     }
 
-    case 'DELETE_MACHINE': {
+    case 'DELETE_MACHINE':
       return {
+        ...state,
         machines: state.machines.filter(m => m.id !== action.payload.machineId),
         tasks: state.tasks.filter(t => t.machineId !== action.payload.machineId),
       };
-    }
+
+    case 'RENAME_MACHINE':
+      return {
+        ...state,
+        machines: state.machines.map(m =>
+          m.id === action.payload.machineId ? { ...m, name: action.payload.name } : m
+        ),
+      };
+
+    case 'UPDATE_MACHINE_NOTES':
+      return {
+        ...state,
+        machines: state.machines.map(m =>
+          m.id === action.payload.machineId ? { ...m, notes: action.payload.notes } : m
+        ),
+      };
 
     case 'UPDATE_TASK_STATUS': {
       const { taskId, status, updatedBy } = action.payload;
       const now = new Date().toISOString();
-
       return {
         ...state,
         tasks: state.tasks.map(task => {
           if (task.id !== taskId) return task;
-
-          const historyEntry: StatusChange = {
-            from: task.status,
-            to: status,
-            timestamp: now,
-            by: updatedBy || task.assignee,
-          };
-
+          const historyEntry: StatusChange = { from: task.status, to: status, timestamp: now, by: updatedBy || task.assignee };
           return {
-            ...task,
-            status,
-            updatedAt: now,
+            ...task, status, updatedAt: now,
             completedAt: status === 'completed' ? now : undefined,
             completedBy: status === 'completed' ? (updatedBy || task.assignee) : undefined,
             statusHistory: [...task.statusHistory, historyEntry],
@@ -165,9 +144,7 @@ function reducer(state: AppState, action: Action): AppState {
       return {
         ...state,
         tasks: state.tasks.map(task =>
-          task.id === taskId
-            ? { ...task, ...updates, updatedAt: new Date().toISOString() }
-            : task
+          task.id === taskId ? { ...task, ...updates, updatedAt: new Date().toISOString() } : task
         ),
       };
     }
@@ -180,8 +157,12 @@ function reducer(state: AppState, action: Action): AppState {
 interface MachineContextType {
   machines: Machine[];
   tasks: Task[];
+  appName: string;
+  setAppName: (name: string) => void;
   addMachine: (name: string) => void;
   deleteMachine: (machineId: string) => void;
+  renameMachine: (machineId: string, name: string) => void;
+  updateMachineNotes: (machineId: string, notes: string) => void;
   updateTaskStatus: (taskId: string, status: TaskStatus, updatedBy?: string) => void;
   updateTask: (taskId: string, updates: Partial<Pick<Task, 'notes' | 'assignee'>>) => void;
   getTasksForMachine: (machineId: string) => Task[];
@@ -196,37 +177,20 @@ export function MachineProvider({ children }: { children: React.ReactNode }) {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
   }, [state]);
 
-  const addMachine = useCallback((name: string) => {
-    dispatch({ type: 'ADD_MACHINE', payload: { name } });
-  }, []);
-
-  const deleteMachine = useCallback((machineId: string) => {
-    dispatch({ type: 'DELETE_MACHINE', payload: { machineId } });
-  }, []);
-
-  const updateTaskStatus = useCallback((taskId: string, status: TaskStatus, updatedBy?: string) => {
-    dispatch({ type: 'UPDATE_TASK_STATUS', payload: { taskId, status, updatedBy } });
-  }, []);
-
-  const updateTask = useCallback((taskId: string, updates: Partial<Pick<Task, 'notes' | 'assignee'>>) => {
-    dispatch({ type: 'UPDATE_TASK', payload: { taskId, updates } });
-  }, []);
-
-  const getTasksForMachine = useCallback((machineId: string) => {
-    return state.tasks
-      .filter(t => t.machineId === machineId)
-      .sort((a, b) => a.order - b.order);
-  }, [state.tasks]);
+  const setAppName = useCallback((name: string) => dispatch({ type: 'SET_APP_NAME', payload: { name } }), []);
+  const addMachine = useCallback((name: string) => dispatch({ type: 'ADD_MACHINE', payload: { name } }), []);
+  const deleteMachine = useCallback((machineId: string) => dispatch({ type: 'DELETE_MACHINE', payload: { machineId } }), []);
+  const renameMachine = useCallback((machineId: string, name: string) => dispatch({ type: 'RENAME_MACHINE', payload: { machineId, name } }), []);
+  const updateMachineNotes = useCallback((machineId: string, notes: string) => dispatch({ type: 'UPDATE_MACHINE_NOTES', payload: { machineId, notes } }), []);
+  const updateTaskStatus = useCallback((taskId: string, status: TaskStatus, updatedBy?: string) => dispatch({ type: 'UPDATE_TASK_STATUS', payload: { taskId, status, updatedBy } }), []);
+  const updateTask = useCallback((taskId: string, updates: Partial<Pick<Task, 'notes' | 'assignee'>>) => dispatch({ type: 'UPDATE_TASK', payload: { taskId, updates } }), []);
+  const getTasksForMachine = useCallback((machineId: string) => state.tasks.filter(t => t.machineId === machineId).sort((a, b) => a.order - b.order), [state.tasks]);
 
   return (
     <MachineContext.Provider value={{
-      machines: state.machines,
-      tasks: state.tasks,
-      addMachine,
-      deleteMachine,
-      updateTaskStatus,
-      updateTask,
-      getTasksForMachine,
+      machines: state.machines, tasks: state.tasks, appName: state.appName,
+      setAppName, addMachine, deleteMachine, renameMachine, updateMachineNotes,
+      updateTaskStatus, updateTask, getTasksForMachine,
     }}>
       {children}
     </MachineContext.Provider>
