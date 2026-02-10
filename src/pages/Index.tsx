@@ -1,13 +1,20 @@
-// Update this page (the content is just a fallback if you fail to update the page)
+import { useState } from 'react';
+import { MachineProvider } from '@/context/MachineContext';
+import { Header } from '@/components/Header';
+import { KanbanBoard } from '@/components/KanbanBoard';
+import { AddMachineDialog } from '@/components/AddMachineDialog';
 
 const Index = () => {
+  const [addDialogOpen, setAddDialogOpen] = useState(false);
+
   return (
-    <div className="flex min-h-screen items-center justify-center bg-background">
-      <div className="text-center">
-        <h1 className="mb-4 text-4xl font-bold">Welcome to Your Blank App</h1>
-        <p className="text-xl text-muted-foreground">Start building your amazing project here!</p>
+    <MachineProvider>
+      <div className="flex h-screen flex-col bg-background">
+        <Header onAddMachine={() => setAddDialogOpen(true)} />
+        <KanbanBoard onAddMachine={() => setAddDialogOpen(true)} />
+        <AddMachineDialog open={addDialogOpen} onOpenChange={setAddDialogOpen} />
       </div>
-    </div>
+    </MachineProvider>
   );
 };
 
